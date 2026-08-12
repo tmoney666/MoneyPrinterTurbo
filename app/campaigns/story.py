@@ -162,7 +162,7 @@ class StoryEngine:
             story_id=story_id,
             planned_item_id=item.planned_item_id,
             campaign_id=campaign.campaign_id,
-            content_pillar=item.content_pillar,
+            content_pillar=pillar.id,
             theme=item.theme,
             topic=item.topic,
             target_audience=campaign.target_audience.description,

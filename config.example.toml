@@ -2,6 +2,15 @@
 # The app copies this file to config.toml on first run. Keep API keys and other
 # credentials in config.toml; do not commit your local config.toml.
 
+# =============================================================================
+# API Service / API 服务
+# =============================================================================
+# Log level: DEBUG, INFO, WARNING, or ERROR.
+log_level = "DEBUG"
+# Use 127.0.0.1 for local-only access. 0.0.0.0 listens on all network interfaces.
+listen_host = "0.0.0.0"
+listen_port = 8080
+
 [campaign_features]
 # All new campaign/story/memory paths are opt-in. These defaults preserve the
 # existing manual and unattended MoneyPrinterTurbo behavior.
@@ -12,15 +21,6 @@ structured_mpt_payload_adapter = false
 automatic_daily_campaign_planning = false
 memory_duplicate_blocking = false
 memory_duplicate_warnings = false
-
-# =============================================================================
-# API Service / API 服务
-# =============================================================================
-# Log level: DEBUG, INFO, WARNING, or ERROR.
-log_level = "DEBUG"
-# Use 127.0.0.1 for local-only access. 0.0.0.0 listens on all network interfaces.
-listen_host = "0.0.0.0"
-listen_port = 8080
 
 [app]
 

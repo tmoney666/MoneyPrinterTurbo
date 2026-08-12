@@ -123,7 +123,6 @@ class CampaignWorkflow:
             existing = self._memory_for_item(selection.planned_item.planned_item_id) if selection.planned_item else None
             if selection.idempotent_replay and existing:
                 package_data = existing.artifacts.get("story_package")
-                payload_data = existing.artifacts.get("mpt_payload")
                 return PreparedCampaignContent(
                     selection=selection,
                     memory_decision=memory_decision,

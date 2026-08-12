@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-import json
 import tempfile
 import threading
 import unittest
-from collections import Counter
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import yaml
@@ -16,8 +14,6 @@ from app.campaigns.config import (
     preview_legacy_seed_migration,
     validate_story_format_compatibility,
 )
-from app.campaigns.memory import ContentMemoryRepository
-from app.campaigns.models import LifecycleState
 from app.campaigns.planner import CampaignPlanner, EmptyPlanningHistory
 from app.campaigns.selection import CampaignSelectionService
 from test.campaigns.common import ROOT, heritage_campaign, memory_record, repository
