@@ -85,6 +85,7 @@ class VideoParams(BaseModel):
     video_clip_duration: int = Field(default=5, ge=1)
     video_clip_speed: Optional[float] = 1.0
     match_materials_to_script: bool = False
+    material_quality_filter: bool = False
     video_count: int = Field(default=1, ge=1)
 
     video_source: Optional[str] = "pexels"
@@ -113,6 +114,7 @@ class VideoParams(BaseModel):
     text_fore_color: Optional[str] = "#FFFFFF"
     text_background_color: Union[bool, str] = False
     rounded_subtitle_background: bool = False
+    subtitle_max_words: int = Field(default=0, ge=0, le=20)
 
     font_size: int = 60
     stroke_color: Optional[str] = "#000000"

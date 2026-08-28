@@ -754,6 +754,49 @@ class TestMaterialTlsVerification(unittest.TestCase):
             ["a1.mp4", "b1.mp4", "a2.mp4"],
         )
 
+    def test_ordered_quality_filter_rejects_minor_mismatch_and_repeated_creator(self):
+        def candidate(asset_id, url, title, creator):
+            return material.MaterialInfo(
+                provider="pexels",
+                url=url,
+                duration=4,
+                source_info={
+                    "provider": "pexels",
+                    "asset_id": asset_id,
+                    "title": title,
+                    "creator": {"id": creator},
+                },
+            )
+
+        results = {
+            "old family notebook": [
+                candidate("blocked", "https://v.example/blocked.mp4", "schoolgirls with notebooks", "c0"),
+                candidate("a1", "https://v.example/a1.mp4", "writing in an old notebook", "c1"),
+            ],
+            "historic photograph": [
+                candidate("repeat", "https://v.example/repeat.mp4", "historic photo", "c1"),
+                candidate("b2", "https://v.example/b2.mp4", "hands holding historic photo", "c2"),
+            ],
+        }
+        downloaded = []
+
+        with patch.object(
+            material, "save_video", side_effect=lambda video_url, save_dir="": downloaded.append(video_url) or f"/tmp/{video_url.rsplit('/', 1)[-1]}"
+        ), patch.object(material.task_artifacts, "patch_script_data", return_value=True):
+            paths = material._download_videos_by_script_order(
+                task_id="quality-filter",
+                search_terms=list(results),
+                search_videos=lambda search_term, minimum_duration, video_aspect: results[search_term],
+                video_aspect=material.VideoAspect.portrait,
+                audio_duration=7,
+                max_clip_duration=4,
+                material_directory="",
+                quality_filter=True,
+            )
+
+        self.assertEqual(downloaded, ["https://v.example/a1.mp4", "https://v.example/b2.mp4"])
+        self.assertEqual(paths, ["/tmp/a1.mp4", "/tmp/b2.mp4"])
+
     def test_material_source_persistence_failure_does_not_break_download(self):
         """辅助任务记录失败时，已经下载成功的素材仍应正常返回给成片主流程。"""
         item = material.MaterialInfo(

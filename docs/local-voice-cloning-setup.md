@@ -1,9 +1,10 @@
 # Local Voice Cloning Setup for MoneyPrinterTurbo
 
-Reviewed: July 12, 2026
+Reviewed: August 28, 2026
 
-> Status: unsupported local experiment. This workspace is not part of the
-> campaign pipeline, is not covered by product support, and must not be used
+> Status: local adapter with Qwen TTS 0.6B/current profile approved for Heritage
+> Banner. Other engines and profiles remain experimental. The adapter is
+> available to the campaign pipeline only when explicitly selected and must not be used
 > with a person's voice without explicit permission. Tool and model licenses,
 > provenance, retention behavior, and current system requirements must be
 > rechecked from their official sources before any download or real use.
@@ -20,13 +21,18 @@ Use a sidecar workflow first:
 - `tools/local-voice/check-local-voice.ps1`: local readiness and endpoint checks.
 - `local_voice/`: private working folders for reference clips, script snippets, and outputs.
 
-MoneyPrinterTurbo already has a Chatterbox TTS integration in:
+MoneyPrinterTurbo has explicit local-provider integrations in:
 
 - `app/services/voice.py`, via an OpenAI-compatible `POST /audio/speech` client.
 - `webui/Main.py`, where "Chatterbox TTS" appears as a selectable TTS server.
 - `config.example.toml`, under `[chatterbox]`.
+- `app/services/voice.py`, via `voicebox:<profile-id>` and Voicebox's
+  `POST /generate/stream` endpoint.
+- `config.example.toml`, under `[voicebox]`.
 
-So the safest first step is not to edit MoneyPrinterTurbo. Generate narration outside the app, save it as a WAV or MP3, then manually import or replace narration in the MoneyPrinterTurbo output workflow. Once the audio workflow is proven, integration can reuse the existing Chatterbox hook instead of adding a second voice-cloning path.
+The Voicebox path is opt-in and fail-closed. If the local service or selected
+profile is unavailable, the render fails instead of substituting an Azure or
+other generic voice. Manual WAV export remains the safest diagnostic fallback.
 
 ## Recommended First Path
 
@@ -67,8 +73,19 @@ Fit for this laptop:
 
 MoneyPrinterTurbo fit:
 
-- For now, export a WAV/MP3 from Voicebox and manually replace/import narration.
-- Later, add a tiny adapter that calls Voicebox `/generate` and writes the returned audio into the task folder.
+- Select a profile with `voice_name = "voicebox:<profile-id>"`.
+- Voicebox narration accepts the existing `voice_rate` multiplier from 0.5
+  through 2.0. Non-native values use FFmpeg's pitch-preserving `atempo`
+  filter; script word count must still be planned for the intended duration.
+- On memory-constrained machines, set `unload_after_generation = true`. MPT
+  releases the local model after narration so FFmpeg can reuse that memory.
+- The adapter streams WAV audio directly from Voicebox and writes it into the
+  task audio path. It never uploads the sample or narration to a cloud service.
+- A host MPT process defaults to `http://127.0.0.1:17493`. An MPT Docker
+  container should use `http://host.docker.internal:17493` in `[voicebox]`.
+- Heritage Banner uses `engine = "qwen"`, `model_size = "0.6B"`, and native
+  `voice_rate = 1.0` after the product owner approved a private diagnostic for
+  pacing and inflection. Keep other engine/profile combinations experimental.
 
 ## Option B: Chatterbox / OpenAI-Compatible Server
 
@@ -214,9 +231,12 @@ What it does:
    local_voice/output/smoke-test.mp3
    ```
 
-4. Manual MoneyPrinterTurbo step.
+4. MoneyPrinterTurbo adapter smoke test.
 
-   Use MoneyPrinterTurbo normally to create a video draft. Then manually replace the generated narration audio with `local_voice/output/smoke-test.wav` or `local_voice/output/smoke-test.mp3` in your video editor, or copy it into the relevant task folder only for local experimentation.
+   Start Voicebox, copy the consented profile id from its local profile list,
+   and set `voice_name` to `voicebox:<profile-id>` for one generation-only
+   draft. Keep the existing production voice configured until the comparison
+   passes human review.
 
 5. Review before integrating.
 
@@ -247,16 +267,12 @@ For this laptop, prefer a small engine first and test one short line before down
 
 ## Decision Summary
 
-Recommended first path: Voicebox.sh GUI/API.
+Recommended first path: Voicebox GUI/API through the explicit local adapter.
 
 Fallback path: Chatterbox API server, because MoneyPrinterTurbo already has a compatible Chatterbox client.
 
 Defer: direct Qwen3-TTS until you have a stronger machine or a server wrapper that exposes an OpenAI-compatible speech endpoint.
 
-## Next Integration Prompt
-
-Use this after the local smoke test produces a good WAV/MP3:
-
-```text
-I have a local generated narration file at local_voice/output/smoke-test.wav. Inspect MoneyPrinterTurbo's task/audio pipeline and add the smallest safe workflow to use a pre-generated local narration file instead of calling TTS. Keep existing TTS behavior unchanged, protect against path traversal, do not commit audio files, and add tests for the new local-audio path.
-```
+Activation still requires a consented sample, a short generated comparison,
+and human scoring for naturalness, pacing, pronunciation, warmth, and brand fit.
+Do not put the profile id, sample, or output audio in source control or evidence.
