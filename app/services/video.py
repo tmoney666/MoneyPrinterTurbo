@@ -289,7 +289,48 @@ def _fallback_write_videofile(clip, output_file: str, failed_codec: str, reason:
     return _DEFAULT_VIDEO_CODEC
 
 
-def _write_videofile_with_codec_fallback(clip, output_file: str, codec: str, **kwargs):
+def _validate_written_video(output_file: str):
+    """Verify that FFmpeg can open the container and decode its first video frame."""
+    if not os.path.isfile(output_file) or os.path.getsize(output_file) <= 0:
+        raise RuntimeError("video output is missing or empty")
+
+    try:
+        result = subprocess.run(
+            [
+                utils.get_ffmpeg_binary(),
+                "-v",
+                "error",
+                "-i",
+                output_file,
+                "-map",
+                "0:v:0",
+                "-frames:v",
+                "1",
+                "-f",
+                "null",
+                "-",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise RuntimeError(f"video validation could not run: {str(exc)}") from exc
+
+    if result.returncode != 0:
+        error_message = (result.stderr or result.stdout or "").strip()
+        raise RuntimeError(error_message or "ffmpeg could not decode the video output")
+
+
+def _write_videofile_with_codec_fallback(
+    clip,
+    output_file: str,
+    codec: str,
+    *,
+    validate_output: bool = False,
+    **kwargs,
+):
     """
     使用指定编码器写出视频，失败时自动用 libx264 重试一次。
 
@@ -299,17 +340,48 @@ def _write_videofile_with_codec_fallback(clip, output_file: str, codec: str, **k
     effective_codec = _get_effective_video_codec(codec)
     try:
         clip.write_videofile(output_file, codec=effective_codec, **kwargs)
-        return effective_codec
+        used_codec = effective_codec
     except Exception as exc:
         if effective_codec == _DEFAULT_VIDEO_CODEC:
             raise
-        return _fallback_write_videofile(
+        used_codec = _fallback_write_videofile(
             clip,
             output_file,
             failed_codec=effective_codec,
             reason=str(exc),
             **kwargs,
         )
+
+    if not validate_output:
+        return used_codec
+
+    try:
+        _validate_written_video(output_file)
+        return used_codec
+    except Exception as validation_error:
+        # MoviePy can occasionally return successfully even though FFmpeg left a
+        # truncated MP4 (for example, one without its `moov` atom). Never let such
+        # a file reach the concat demuxer. Remove it and make one bounded rewrite
+        # with the stable software codec before failing the individual clip.
+        delete_files(output_file)
+        logger.warning(
+            f"video output validation failed, retrying once with {_DEFAULT_VIDEO_CODEC}: "
+            f"{str(validation_error)}"
+        )
+
+        try:
+            clip.write_videofile(output_file, codec=_DEFAULT_VIDEO_CODEC, **kwargs)
+            _validate_written_video(output_file)
+        except Exception as retry_error:
+            delete_files(output_file)
+            raise RuntimeError(
+                "video output remained invalid after one software-codec retry: "
+                f"{str(retry_error)}"
+            ) from retry_error
+
+        if used_codec != _DEFAULT_VIDEO_CODEC:
+            _disable_runtime_video_codec(used_codec, str(validation_error))
+        return _DEFAULT_VIDEO_CODEC
 
 
 def _escape_ffmpeg_concat_path(file_path: str) -> str:
@@ -699,6 +771,7 @@ def combine_videos(
                 clip,
                 clip_file,
                 codec=_get_configured_video_codec(),
+                validate_output=True,
                 logger=None,
                 fps=fps,
             )
