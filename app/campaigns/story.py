@@ -167,8 +167,15 @@ class StoryEngine:
             topic=item.topic,
             target_audience=campaign.target_audience.description,
             audience_objective=item.audience_objective,
-            core_message=f"{item.topic.capitalize()} can help people preserve and share meaning with care.",
-            desired_emotional_response="warm recognition followed by a practical desire to reflect or respond",
+            core_message=(
+                f"{item.topic.capitalize()} can help a heritage nonprofit make participation visible, specific, and shared while inviting younger and newer people into useful work with experienced members."
+                if campaign.metadata.get("creative_revision")
+                else f"{item.topic.capitalize()} can help people preserve and share meaning with care."
+            ),
+            desired_emotional_response=str(campaign.metadata.get(
+                "desired_emotional_response",
+                "warm recognition followed by a practical desire to reflect or respond",
+            )),
             story_format=item.story_format,
             tone=campaign.brand_voice,
             target_duration_seconds=item.target_duration_seconds,
@@ -345,6 +352,17 @@ class StoryEngine:
             "resolution": f"{concept.core_takeaway}. Small acts of attention can keep meaning connected to its source.",
             "cta": brief.cta_objective,
         }
+        if "heritage nonprofit" in brief.target_audience.casefold():
+            segment_text.update({
+                "context": f"For a heritage nonprofit, {brief.topic} becomes useful when members connect it to visible mission work.",
+                "setup": f"Members can frame {brief.topic} around one practical project instead of a vague request for involvement.",
+                "tension": "When roles and decisions stay invisible, interested people may admire the mission without seeing where they can contribute.",
+                "discovery": "Name one bounded task, the support available, and a real choice a younger or newer participant can help shape.",
+                "contrast": "Attendance creates familiarity, while shared responsibility gives a volunteer a concrete way to build belonging.",
+                "example": f"Show a member working on {brief.topic}, explain why it matters, and identify one useful entry point.",
+                "reflection": "Ask which skills and questions a newer participant could bring alongside the organization's existing knowledge.",
+                "resolution": f"{concept.core_takeaway}. Clear short stories can make the people, work, and participation path easier to understand.",
+            })
         segments: list[NarrationSegment] = []
         for beat in beats:
             text = segment_text.get(beat.beat_type, beat.key_information)
