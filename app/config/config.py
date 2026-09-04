@@ -465,6 +465,7 @@ def save_config():
         config_to_save["siliconflow"] = dict(siliconflow)
         config_to_save["elevenlabs"] = dict(elevenlabs)
         config_to_save["chatterbox"] = dict(chatterbox)
+        config_to_save["voicebox"] = dict(voicebox)
         config_to_save["ui"] = dict(ui)
         serialized_config = toml.dumps(config_to_save)
 
@@ -519,6 +520,7 @@ azure = _SynchronizedConfig(_cfg.get("azure", {}))
 siliconflow = _SynchronizedConfig(_cfg.get("siliconflow", {}))
 elevenlabs = _SynchronizedConfig(_cfg.get("elevenlabs", {}))
 chatterbox = _SynchronizedConfig(_cfg.get("chatterbox", {}))
+voicebox = _SynchronizedConfig(_cfg.get("voicebox", {}))
 ui = _SynchronizedConfig(
     _cfg.get(
         "ui",
@@ -527,6 +529,7 @@ ui = _SynchronizedConfig(
         },
     )
 )
+campaign_features = _cfg.get("campaign_features", {})
 
 hostname = socket.gethostname()
 

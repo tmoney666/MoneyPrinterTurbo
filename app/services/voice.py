@@ -13,6 +13,7 @@ import time
 import unicodedata
 from datetime import datetime
 from typing import Union
+from urllib.parse import quote, urlparse
 from xml.sax.saxutils import escape, unescape
 
 import edge_tts
@@ -268,6 +269,11 @@ def is_chatterbox_voice(voice_name: str) -> bool:
     return (voice_name or "").startswith("chatterbox:")
 
 
+def is_voicebox_voice(voice_name: str) -> bool:
+    """Return whether a voice explicitly selects a local Voicebox profile."""
+    return (voice_name or "").startswith("voicebox:")
+
+
 def is_no_voice(voice_name: str | None) -> bool:
     """
     判断用户是否明确选择了“无配音”模式。
@@ -442,6 +448,18 @@ def tts(
         else:
             logger.error(f"Invalid elevenlabs voice name format: {voice_name}")
             return None
+    elif is_voicebox_voice(voice_name):
+        parts = voice_name.split(":", 1)
+        if len(parts) >= 2 and parts[1].strip():
+            return voicebox_tts(
+                text=text,
+                profile_id=parts[1].strip(),
+                voice_file=voice_file,
+                voice_rate=voice_rate,
+                voice_volume=voice_volume,
+            )
+        logger.error(f"Invalid Voicebox voice name format: {voice_name}")
+        return None
     elif is_chatterbox_voice(voice_name):
         # 格式: chatterbox:<voice>，voice 可带显示用的 -Female/-Male 后缀
         parts = voice_name.split(":", 1)
@@ -1463,6 +1481,257 @@ def chatterbox_tts(
     return None
 
 
+def voicebox_tts(
+    text: str,
+    profile_id: str,
+    voice_file: str,
+    voice_rate: float = 1.0,
+    voice_volume: float = 1.0,
+) -> Union[SubMaker, None]:
+    """Generate speech with the local Voicebox ``/generate/stream`` API.
+
+    The provider is deliberately opt-in through ``voicebox:<profile-id>`` and
+    never falls back to another voice. Voicebox returns WAV bytes; FFmpeg and
+    MoviePy probe the file contents, so the existing MPT audio filename can be
+    retained even when its conventional suffix is ``.mp3``.
+
+    Voicebox currently has no rate or volume fields in its generation request.
+    A non-native ``voice_rate`` is therefore applied locally with FFmpeg's
+    pitch-preserving ``atempo`` filter after synthesis. The provider response
+    and processed file are kept separate until the final audio is complete so
+    a failed conversion cannot leave a publishable partial file.
+    """
+    text = (text or "").strip()
+    profile_id = (profile_id or "").strip()
+    if not text:
+        logger.error("Voicebox TTS text is empty")
+        return None
+    if not profile_id:
+        logger.error("Voicebox profile id is empty")
+        return None
+
+    try:
+        normalized_voice_rate = float(voice_rate or 1.0)
+    except (TypeError, ValueError):
+        logger.error(f"Voicebox voice_rate is invalid: {voice_rate}")
+        return None
+    if (
+        not math.isfinite(normalized_voice_rate)
+        or normalized_voice_rate < 0.5
+        or normalized_voice_rate > 2.0
+    ):
+        logger.error(
+            "Voicebox voice_rate must be a finite multiplier from 0.5 through 2.0"
+        )
+        return None
+
+    settings = config.voicebox
+    default_base_url = (
+        "http://host.docker.internal:17493"
+        if os.path.exists("/.dockerenv")
+        else "http://127.0.0.1:17493"
+    )
+    base_url = (
+        settings.get("base_url", default_base_url) or default_base_url
+    ).strip().rstrip("/")
+    hostname = (urlparse(base_url).hostname or "").lower()
+    if hostname not in {"127.0.0.1", "localhost", "::1", "host.docker.internal"}:
+        logger.error("Voicebox base_url must use a local host")
+        return None
+
+    legacy_target_wpm = settings.get("target_wpm", 0)
+    if legacy_target_wpm not in (None, "", 0, 0.0, "0"):
+        logger.warning(
+            "Voicebox target_wpm is deprecated and ignored; "
+            "use voice_rate plus script word count to control narration duration"
+        )
+
+    payload = {
+        "profile_id": profile_id,
+        "text": text,
+        "language": str(settings.get("language", "en") or "en").strip(),
+        "engine": str(settings.get("engine", "luxtts") or "luxtts").strip(),
+        "max_chunk_chars": int(settings.get("max_chunk_chars", 320) or 320),
+        "crossfade_ms": int(settings.get("crossfade_ms", 50) or 50),
+        "normalize": bool(settings.get("normalize", True)),
+    }
+    model_size = str(settings.get("model_size", "") or "").strip()
+    if model_size:
+        payload["model_size"] = model_size
+
+    timeout = 30.0
+    native_voice_file = f"{voice_file}.voicebox-native.wav"
+    paced_voice_file = f"{voice_file}.voicebox-paced.wav"
+    try:
+        # CPU-backed Qwen 0.6B can exceed ten minutes for an 80-100 word
+        # production narration on the supported low-memory host. Keep the
+        # request bounded, but leave enough headroom above observed runtimes.
+        timeout = max(float(settings.get("timeout_seconds", 900) or 900), 1.0)
+        logger.info("start local Voicebox TTS")
+        response = requests.post(
+            f"{base_url}/generate/stream",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=timeout,
+        )
+        if response.status_code != 200:
+            logger.error(
+                f"Voicebox TTS failed with status {response.status_code}: {response.text[:200]}"
+            )
+            return None
+        if not response.content:
+            logger.error("Voicebox TTS returned an empty audio response")
+            return None
+
+        ensure_file_path_exists(voice_file)
+        with open(native_voice_file, "wb") as f:
+            f.write(response.content)
+
+        if not _apply_voicebox_tempo(
+            native_voice_file=native_voice_file,
+            paced_voice_file=paced_voice_file,
+            output_file=voice_file,
+            voice_rate=normalized_voice_rate,
+            timeout_seconds=timeout,
+        ):
+            return None
+
+        audio_clip = AudioFileClip(voice_file)
+        audio_duration = audio_clip.duration
+        audio_clip.close()
+        word_count = _voicebox_word_count(text)
+        observed_wpm = word_count * 60.0 / max(audio_duration, 0.001)
+        logger.info(
+            "Voicebox narration: "
+            f"words={word_count}, duration={audio_duration:.2f}s, "
+            f"observed_wpm={observed_wpm:.1f}, rate={normalized_voice_rate:g}, "
+            f"engine={payload['engine']}"
+        )
+        sub_maker = ensure_legacy_submaker_fields(SubMaker())
+        logger.success(f"Voicebox TTS succeeded: {voice_file}")
+        return populate_legacy_submaker_with_full_text(
+            sub_maker=sub_maker,
+            text=text,
+            audio_duration_seconds=audio_duration,
+        )
+    except Exception as e:
+        logger.error(f"Voicebox TTS failed: {str(e)}")
+        return None
+    finally:
+        for temporary_file in (native_voice_file, paced_voice_file):
+            try:
+                if os.path.exists(temporary_file):
+                    os.remove(temporary_file)
+            except OSError as exc:
+                logger.warning(
+                    f"failed to remove temporary Voicebox audio: {str(exc)}"
+                )
+        if bool(settings.get("unload_after_generation", False)):
+            _unload_voicebox_model(
+                base_url=base_url,
+                model_name=_voicebox_model_name(
+                    engine=str(payload["engine"]),
+                    model_size=str(payload.get("model_size", "") or ""),
+                ),
+                timeout_seconds=min(timeout, 30.0),
+            )
+
+
+def _apply_voicebox_tempo(
+    native_voice_file: str,
+    paced_voice_file: str,
+    output_file: str,
+    voice_rate: float,
+    timeout_seconds: float,
+) -> bool:
+    """Atomically promote native or pitch-preserved Voicebox audio."""
+    if math.isclose(voice_rate, 1.0, abs_tol=0.001):
+        os.replace(native_voice_file, output_file)
+        return True
+
+    command = [
+        utils.get_ffmpeg_binary(),
+        "-y",
+        "-i",
+        native_voice_file,
+        "-filter:a",
+        f"atempo={voice_rate:g}",
+        "-vn",
+        "-c:a",
+        "pcm_s16le",
+        "-f",
+        "wav",
+        paced_voice_file,
+    ]
+    try:
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=max(min(float(timeout_seconds or 600), 600.0), 1.0),
+        )
+    except Exception as exc:
+        logger.error(f"Voicebox tempo processing failed: {str(exc)}")
+        return False
+    if result.returncode != 0:
+        logger.error(
+            "Voicebox tempo processing failed: "
+            f"{(result.stderr or result.stdout or '').strip()}"
+        )
+        return False
+    if not os.path.exists(paced_voice_file) or os.path.getsize(paced_voice_file) <= 0:
+        logger.error("Voicebox tempo processing returned no audio")
+        return False
+
+    os.replace(paced_voice_file, output_file)
+    logger.info(f"applied pitch-preserving Voicebox tempo: {voice_rate:g}x")
+    return True
+
+
+def _voicebox_model_name(engine: str, model_size: str = "") -> str:
+    """Translate generation engine settings to Voicebox's model identifier."""
+    normalized_engine = (engine or "").strip().lower().replace("-", "_")
+    normalized_size = (model_size or "").strip() or "1.7B"
+    if normalized_engine == "qwen":
+        return f"qwen-tts-{normalized_size}"
+    if normalized_engine == "chatterbox":
+        return "chatterbox-tts"
+    if normalized_engine == "chatterbox_turbo":
+        return "chatterbox-turbo"
+    return (engine or "").strip()
+
+
+def _unload_voicebox_model(
+    base_url: str,
+    model_name: str,
+    timeout_seconds: float = 30.0,
+) -> bool:
+    """Release local TTS model memory before MPT starts video rendering."""
+    try:
+        response = requests.post(
+            f"{base_url}/models/{quote(model_name, safe='')}/unload",
+            timeout=max(float(timeout_seconds or 30.0), 1.0),
+        )
+        if response.status_code != 200:
+            logger.warning(
+                f"Voicebox model unload returned status {response.status_code}"
+            )
+            return False
+        logger.info("released local Voicebox model memory")
+        return True
+    except Exception as exc:
+        # The narration is already safely written. An unload failure should be
+        # visible, but it must not discard valid audio or silently swap voices.
+        logger.warning(f"Voicebox model unload failed: {str(exc)}")
+        return False
+
+
+def _voicebox_word_count(text: str) -> int:
+    """Count spoken English words for native-speed diagnostics."""
+    return len(re.findall(r"\b[\w]+(?:['-][\w]+)*\b", text or "", flags=re.UNICODE))
+
+
 def _format_text(text: str) -> str:
     """
     清理字幕对齐前的脚本文本。
@@ -1497,6 +1766,79 @@ def _build_subtitle_formatter():
         return f"{idx}\n{start_t} --> {end_t}\n{sub_text}\n"
 
     return formatter
+
+
+def _balanced_subtitle_phrases(text: str, max_words: int) -> list[str]:
+    """Split long space-delimited captions into balanced readable phrases."""
+    words = text.split()
+    if max_words < 3 or len(words) <= max_words:
+        return [text]
+
+    phrase_count = math.ceil(len(words) / max_words)
+    base_size, remainder = divmod(len(words), phrase_count)
+    phrases = []
+    cursor = 0
+    for index in range(phrase_count):
+        size = base_size + (1 if index < remainder else 0)
+        phrases.append(" ".join(words[cursor : cursor + size]))
+        cursor += size
+    return phrases
+
+
+def _subtitle_timestamp_to_ticks(value: str) -> int:
+    hours, minutes, seconds = value.replace(",", ".").split(":")
+    total_seconds = int(hours) * 3600 + int(minutes) * 60 + float(seconds)
+    return round(total_seconds * 10_000_000)
+
+
+def _reflow_subtitle_items(sub_items: list[str], max_words: int) -> list[str]:
+    """Reflow SRT items while preserving and proportionally dividing timing."""
+    if max_words < 3:
+        return sub_items
+
+    formatter = _build_subtitle_formatter()
+    result = []
+    output_index = 1
+    for item in sub_items:
+        lines = item.strip().splitlines()
+        if len(lines) < 3 or " --> " not in lines[1]:
+            result.append(item)
+            output_index += 1
+            continue
+
+        start_value, end_value = lines[1].split(" --> ", 1)
+        text = " ".join(lines[2:]).strip()
+        phrases = _balanced_subtitle_phrases(text, max_words)
+        if len(phrases) == 1:
+            result.append(
+                formatter(
+                    output_index,
+                    _subtitle_timestamp_to_ticks(start_value),
+                    _subtitle_timestamp_to_ticks(end_value),
+                    text,
+                )
+            )
+            output_index += 1
+            continue
+
+        start_ticks = _subtitle_timestamp_to_ticks(start_value)
+        end_ticks = _subtitle_timestamp_to_ticks(end_value)
+        total_words = sum(len(phrase.split()) for phrase in phrases)
+        cursor = start_ticks
+        consumed_words = 0
+        for phrase_index, phrase in enumerate(phrases):
+            phrase_words = len(phrase.split())
+            consumed_words += phrase_words
+            phrase_end = (
+                end_ticks
+                if phrase_index == len(phrases) - 1
+                else start_ticks
+                + round((end_ticks - start_ticks) * consumed_words / total_words)
+            )
+            result.append(formatter(output_index, cursor, phrase_end, phrase))
+            output_index += 1
+            cursor = phrase_end
+    return result
 
 
 # 阿拉伯语变音符号和 Tatweel 拉长符在 edge-tts 返回文本中可能出现，
@@ -1686,7 +2028,12 @@ def _build_subtitle_items_from_legacy_submaker(
     return sub_items
 
 
-def create_subtitle(sub_maker: SubMaker, text: str, subtitle_file: str):
+def create_subtitle(
+    sub_maker: SubMaker,
+    text: str,
+    subtitle_file: str,
+    max_words: int = 0,
+):
     """
     优化字幕文件
     1. 将字幕文件按照标点符号分割成多行
@@ -1709,6 +2056,7 @@ def create_subtitle(sub_maker: SubMaker, text: str, subtitle_file: str):
             )
             return
 
+        sub_items = _reflow_subtitle_items(sub_items, max_words=max_words)
         _write_subtitle_items(sub_items, subtitle_file)
     except Exception as e:
         logger.error(f"failed, error: {str(e)}")

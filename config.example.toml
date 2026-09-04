@@ -11,6 +11,17 @@ log_level = "DEBUG"
 listen_host = "0.0.0.0"
 listen_port = 8080
 
+[campaign_features]
+# All new campaign/story/memory paths are opt-in. These defaults preserve the
+# existing manual and unattended MoneyPrinterTurbo behavior.
+campaign_engine = false
+story_engine = false
+content_memory = false
+structured_mpt_payload_adapter = false
+automatic_daily_campaign_planning = false
+memory_duplicate_blocking = false
+memory_duplicate_warnings = false
+
 [app]
 
 # -----------------------------------------------------------------------------
@@ -332,6 +343,27 @@ api_key = ""
 model_id = "chatterbox"
 # Voice names exposed by the configured Chatterbox server.
 voices = ["default-Female"]
+
+# Local-only Voicebox adapter. Voicebox must be running on the
+# same machine. Select a cloned profile with voice_name = "voicebox:<profile-id>".
+# The profile id is intentionally kept out of this example so private voice
+# data never needs to be checked into the repository.
+[voicebox]
+# When MPT runs in Docker, use http://host.docker.internal:17493 instead.
+base_url = "http://127.0.0.1:17493"
+language = "en"
+engine = "qwen"
+model_size = "0.6B"
+# Non-native voice_rate values are applied after synthesis with FFmpeg's
+# pitch-preserving atempo filter. Keep the multiplier within 0.5-2.0 and plan
+# script word count for the same intended speaking pace.
+# Low-memory machines can release the model after narration so FFmpeg can use
+# that memory for video assembly. The next narration will reload the model.
+unload_after_generation = true
+timeout_seconds = 900
+max_chunk_chars = 320
+crossfade_ms = 50
+normalize = true
 
 # =============================================================================
 # WebUI Preferences / WebUI 偏好

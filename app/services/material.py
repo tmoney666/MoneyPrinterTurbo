@@ -1,5 +1,6 @@
 import os
 import random
+import re
 import threading
 from pathlib import Path
 from typing import Any, Callable, List
@@ -90,6 +91,9 @@ def _material_source_record(item: MaterialInfo, local_path: str) -> dict[str, An
         record["asset_id"] = str(asset_id)
     if source_page:
         record["source_page"] = source_page
+    title = source.get("title")
+    if isinstance(title, str) and title.strip():
+        record["title"] = title.strip()[:300]
 
     creator = _creator_info(source.get("creator"))
     if creator:
@@ -105,6 +109,36 @@ def _material_source_record(item: MaterialInfo, local_path: str) -> dict[str, An
         if rendition:
             record["rendition"] = rendition
     return record
+
+
+_MINOR_VISUAL_TERMS = re.compile(
+    r"\b(baby|babies|boy|boys|child|children|girl|girls|kid|kids|schoolboys|schoolgirls|teen|teens)\b",
+    re.IGNORECASE,
+)
+
+
+def _material_quality_candidate(item: MaterialInfo, search_term: str) -> bool:
+    """Reject obvious sensitive subject mismatches using public metadata only."""
+    if _MINOR_VISUAL_TERMS.search(search_term or ""):
+        return True
+    source = item.source_info if isinstance(item.source_info, dict) else {}
+    metadata = " ".join(
+        str(value or "")
+        for value in (
+            source.get("title"),
+            source.get("tags"),
+            source.get("source_page"),
+        )
+    ).replace("-", " ").replace("_", " ")
+    return _MINOR_VISUAL_TERMS.search(metadata) is None
+
+
+def _material_creator_key(item: MaterialInfo) -> str:
+    source = item.source_info if isinstance(item.source_info, dict) else {}
+    creator = source.get("creator")
+    if not isinstance(creator, dict):
+        return ""
+    return str(creator.get("id") or creator.get("name") or "").strip().lower()
 
 
 def _persist_material_sources(
@@ -350,6 +384,7 @@ def search_videos_pexels(
                             str(v.get("id")) if v.get("id") is not None else None
                         ),
                         "source_page": _safe_public_url(v.get("url")),
+                        "title": v.get("title"),
                         "creator": _creator_info(v.get("user")),
                         "rendition": {
                             "id": (
@@ -474,6 +509,7 @@ def search_videos_pixabay(
                             str(v.get("id")) if v.get("id") is not None else None
                         ),
                         "source_page": _safe_public_url(v.get("pageURL")),
+                        "title": v.get("tags"),
                         "creator": _creator_info(
                             {
                                 "id": v.get("user_id"),
@@ -585,6 +621,7 @@ def search_videos_coverr(
                 "search_term": search_term,
                 "asset_id": str(video_id),
                 "source_page": _safe_public_url(v.get("canonical_url") or v.get("url")),
+                "title": v.get("title"),
                 "creator": _creator_info(v.get("creator") or v.get("author")),
                 "rendition": {
                     "id": "mp4_download",
@@ -765,6 +802,7 @@ def download_videos(
     audio_duration: float = 0.0,
     max_clip_duration: int = 5,
     match_script_order: bool = False,
+    quality_filter: bool = False,
 ) -> List[str]:
     provider = "pexels"
     remote_search_videos = search_videos_pexels
@@ -803,6 +841,7 @@ def download_videos(
             audio_duration=audio_duration,
             max_clip_duration=max_clip_duration,
             material_directory=material_directory,
+            quality_filter=quality_filter,
         )
 
     valid_video_items = []
@@ -884,6 +923,7 @@ def _download_videos_by_script_order(
     audio_duration: float,
     max_clip_duration: int,
     material_directory: str,
+    quality_filter: bool = False,
 ) -> List[str]:
     """
     按脚本文案顺序下载素材。
@@ -909,6 +949,11 @@ def _download_videos_by_script_order(
 
         term_items = []
         for item in video_items:
+            if quality_filter and not _material_quality_candidate(item, search_term):
+                logger.info(
+                    f"skipping ordered material metadata mismatch for {search_term!r}"
+                )
+                continue
             if item.url in valid_video_urls:
                 continue
             term_items.append(item)
@@ -927,6 +972,7 @@ def _download_videos_by_script_order(
     material_sources: list[dict[str, Any]] = []
     total_duration = 0.0
     candidate_index = 0
+    used_creators: set[str] = set()
     while candidate_groups and total_duration <= audio_duration:
         has_candidate = False
         for search_term, term_items in candidate_groups:
@@ -935,6 +981,12 @@ def _download_videos_by_script_order(
 
             has_candidate = True
             item = term_items[candidate_index]
+            creator_key = _material_creator_key(item)
+            if quality_filter and creator_key and creator_key in used_creators:
+                logger.info(
+                    f"skipping repeated material creator for {search_term!r}"
+                )
+                continue
             try:
                 source_info = (
                     item.source_info if isinstance(item.source_info, dict) else {}
@@ -949,6 +1001,8 @@ def _download_videos_by_script_order(
                 if saved_video_path:
                     logger.info(f"video saved: {saved_video_path}")
                     video_paths.append(saved_video_path)
+                    if creator_key:
+                        used_creators.add(creator_key)
                     try:
                         material_sources.append(
                             _material_source_record(item, saved_video_path)

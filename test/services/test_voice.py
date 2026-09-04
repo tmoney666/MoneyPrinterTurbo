@@ -708,6 +708,227 @@ class TestVoiceService(unittest.TestCase):
         self.assertIsNone(result)
         self.assertEqual(post.call_count, 3)
 
+    def test_voicebox_voice_helper_and_dispatch_are_explicit(self):
+        self.assertTrue(vs.is_voicebox_voice("voicebox:profile-123"))
+        self.assertFalse(vs.is_voicebox_voice("chatterbox:default"))
+        self.assertFalse(vs.is_voicebox_voice(None))
+
+        with patch.object(vs, "voicebox_tts", return_value="voicebox-result") as provider:
+            result = vs.tts(
+                text="A local narration.",
+                voice_name="voicebox:profile-123",
+                voice_rate=0.9,
+                voice_file="voice.wav",
+            )
+
+        self.assertEqual(result, "voicebox-result")
+        provider.assert_called_once_with(
+            text="A local narration.",
+            profile_id="profile-123",
+            voice_file="voice.wav",
+            voice_rate=0.9,
+            voice_volume=1.0,
+        )
+
+    def test_voicebox_tts_streams_local_wav_without_leaking_private_config(self):
+        class _FakeResponse:
+            status_code = 200
+            content = b"RIFF-local-voice"
+            text = ""
+
+        class _FakeClip:
+            duration = 4.25
+
+            def close(self):
+                pass
+
+        captured = {}
+
+        def _fake_post(url, json=None, headers=None, timeout=None):
+            captured.update(url=url, json=json, headers=headers, timeout=timeout)
+            return _FakeResponse()
+
+        with tempfile.TemporaryDirectory() as tmp_dir, patch.object(
+            vs.config,
+            "voicebox",
+            {
+                "base_url": "http://127.0.0.1:17493/",
+                "language": "en",
+                "engine": "qwen",
+                "model_size": "0.6B",
+                "crossfade_ms": 40,
+                "normalize": True,
+            },
+        ), patch.object(vs.requests, "post", side_effect=_fake_post), patch.object(
+            vs, "AudioFileClip", return_value=_FakeClip()
+        ):
+            voice_file = str(Path(tmp_dir) / "voicebox.mp3")
+            sub_maker = vs.voicebox_tts(
+                text="A local narration. Second sentence.",
+                profile_id="profile-123",
+                voice_file=voice_file,
+            )
+            generated_audio = Path(voice_file).read_bytes()
+
+        self.assertEqual(captured["url"], "http://127.0.0.1:17493/generate/stream")
+        self.assertEqual(captured["json"]["profile_id"], "profile-123")
+        self.assertEqual(captured["json"]["engine"], "qwen")
+        self.assertEqual(captured["json"]["model_size"], "0.6B")
+        self.assertEqual(captured["json"]["max_chunk_chars"], 320)
+        self.assertNotIn("voice_rate", captured["json"])
+        self.assertNotIn("voice_volume", captured["json"])
+        self.assertEqual(captured["timeout"], 900.0)
+        self.assertEqual(generated_audio, b"RIFF-local-voice")
+        self.assertIsNotNone(sub_maker)
+        self.assertTrue(getattr(sub_maker, "subs", []))
+
+    def test_voicebox_tts_fails_closed_when_local_service_is_unavailable(self):
+        with patch.object(
+            vs.config,
+            "voicebox",
+            {"base_url": "http://127.0.0.1:17493"},
+        ), patch.object(
+            vs.requests, "post", side_effect=vs.requests.ConnectionError("offline")
+        ) as post, patch.object(vs, "azure_tts_v1") as azure_fallback:
+            result = vs.tts(
+                text="Do not substitute another voice.",
+                voice_name="voicebox:profile-123",
+                voice_rate=1.0,
+                voice_file="unused.wav",
+            )
+
+        self.assertIsNone(result)
+        post.assert_called_once()
+        azure_fallback.assert_not_called()
+
+    def test_voicebox_tts_rejects_non_local_service(self):
+        with patch.object(
+            vs.config,
+            "voicebox",
+            {"base_url": "https://voice.example.com"},
+        ), patch.object(vs.requests, "post") as post:
+            result = vs.voicebox_tts(
+                text="Keep this narration private.",
+                profile_id="private-profile",
+                voice_file="unused.wav",
+            )
+
+        self.assertIsNone(result)
+        post.assert_not_called()
+
+    def test_voicebox_applies_pitch_preserving_tempo_and_uses_processed_duration(self):
+        class _FakeResponse:
+            status_code = 200
+            content = b"RIFF-native-voice"
+            text = ""
+
+        class _FakeClip:
+            duration = 2.46
+
+            def close(self):
+                pass
+
+        captured_command = []
+
+        def _fake_ffmpeg(command, **kwargs):
+            captured_command.extend(command)
+            Path(command[-1]).write_bytes(b"RIFF-paced-voice")
+            return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+        with tempfile.TemporaryDirectory() as tmp_dir, patch.object(
+            vs.config,
+            "voicebox",
+            {
+                "base_url": "http://127.0.0.1:17493",
+                "engine": "luxtts",
+                "target_wpm": 130,
+            },
+        ), patch.object(
+            vs.requests, "post", return_value=_FakeResponse()
+        ), patch.object(
+            vs, "AudioFileClip", return_value=_FakeClip()
+        ), patch.object(vs.logger, "warning") as warning, patch.object(
+            vs.subprocess, "run", side_effect=_fake_ffmpeg
+        ) as ffmpeg:
+            voice_file = str(Path(tmp_dir) / "voice.wav")
+            result = vs.voicebox_tts(
+                text="One two three four five six.",
+                profile_id="private-profile",
+                voice_file=voice_file,
+                voice_rate=1.22,
+            )
+
+            self.assertIsNotNone(result)
+            self.assertEqual(Path(voice_file).read_bytes(), b"RIFF-paced-voice")
+            self.assertEqual(warning.call_count, 1)
+            ffmpeg.assert_called_once()
+            self.assertIn("atempo=1.22", captured_command)
+            self.assertEqual(getattr(result, "offset", [])[-1][1], 24_600_000)
+            self.assertFalse(Path(f"{voice_file}.voicebox-native.wav").exists())
+            self.assertFalse(Path(f"{voice_file}.voicebox-paced.wav").exists())
+
+    def test_voicebox_tempo_failure_leaves_no_publishable_audio(self):
+        response = SimpleNamespace(
+            status_code=200,
+            content=b"RIFF-native-voice",
+            text="",
+        )
+        failed_ffmpeg = SimpleNamespace(returncode=1, stdout="", stderr="bad filter")
+
+        with tempfile.TemporaryDirectory() as tmp_dir, patch.object(
+            vs.config,
+            "voicebox",
+            {"base_url": "http://127.0.0.1:17493", "engine": "luxtts"},
+        ), patch.object(
+            vs.requests, "post", return_value=response
+        ), patch.object(
+            vs.subprocess, "run", return_value=failed_ffmpeg
+        ):
+            voice_file = str(Path(tmp_dir) / "voice.wav")
+            result = vs.voicebox_tts(
+                text="A tempo failure must stop publication.",
+                profile_id="private-profile",
+                voice_file=voice_file,
+                voice_rate=1.22,
+            )
+
+            self.assertIsNone(result)
+            self.assertFalse(Path(voice_file).exists())
+            self.assertFalse(Path(f"{voice_file}.voicebox-native.wav").exists())
+            self.assertFalse(Path(f"{voice_file}.voicebox-paced.wav").exists())
+
+    def test_voicebox_rejects_out_of_range_rate_before_generation(self):
+        with patch.object(
+            vs.config,
+            "voicebox",
+            {"base_url": "http://127.0.0.1:17493"},
+        ), patch.object(vs.requests, "post") as post:
+            result = vs.voicebox_tts(
+                text="Do not synthesize this.",
+                profile_id="private-profile",
+                voice_file="unused.wav",
+                voice_rate=2.01,
+            )
+
+        self.assertIsNone(result)
+        post.assert_not_called()
+
+    def test_voicebox_model_unload_uses_local_model_endpoint(self):
+        response = SimpleNamespace(status_code=200)
+        with patch.object(vs.requests, "post", return_value=response) as post:
+            result = vs._unload_voicebox_model(
+                "http://127.0.0.1:17493", "lux tts", timeout_seconds=12
+            )
+
+        self.assertTrue(result)
+        post.assert_called_once_with(
+            "http://127.0.0.1:17493/models/lux%20tts/unload",
+            timeout=12.0,
+        )
+
+    def test_voicebox_qwen_model_name_includes_selected_size(self):
+        self.assertEqual(vs._voicebox_model_name("qwen", "0.6B"), "qwen-tts-0.6B")
+
     def test_generate_subtitle_keeps_edge_provider_for_gemini_legacy_submaker(self):
         """
         验证 Gemini TTS 返回的 legacy 字幕结构在 edge provider 下可以直接产出
@@ -896,6 +1117,20 @@ class TestVoiceService(unittest.TestCase):
         self.assertIn("第二段", subtitle_content)
         self.assertNotIn("---", subtitle_content)
         self.assertNotIn("00:00:00,000 --> 00:00:00,000", subtitle_content)
+
+    def test_reflow_subtitles_balances_phrases_and_preserves_timeline(self):
+        items = [
+            "1\n00:00:00,000 --> 00:00:08,000\n"
+            "A family photograph can open a thoughtful conversation today together\n"
+        ]
+
+        result = vs._reflow_subtitle_items(items, max_words=5)
+
+        self.assertEqual(len(result), 2)
+        self.assertIn("A family photograph can open", result[0])
+        self.assertIn("a thoughtful conversation today together", result[1])
+        self.assertIn("00:00:00,000 --> 00:00:04,000", result[0])
+        self.assertIn("00:00:04,000 --> 00:00:08,000", result[1])
 
     def test_create_subtitle_ignores_markdown_underscore_marks(self):
         """
