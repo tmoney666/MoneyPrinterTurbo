@@ -1551,7 +1551,7 @@ def voicebox_tts(
         "text": text,
         "language": str(settings.get("language", "en") or "en").strip(),
         "engine": str(settings.get("engine", "luxtts") or "luxtts").strip(),
-        "max_chunk_chars": int(settings.get("max_chunk_chars", 800) or 800),
+        "max_chunk_chars": int(settings.get("max_chunk_chars", 320) or 320),
         "crossfade_ms": int(settings.get("crossfade_ms", 50) or 50),
         "normalize": bool(settings.get("normalize", True)),
     }
@@ -1563,7 +1563,10 @@ def voicebox_tts(
     native_voice_file = f"{voice_file}.voicebox-native.wav"
     paced_voice_file = f"{voice_file}.voicebox-paced.wav"
     try:
-        timeout = max(float(settings.get("timeout_seconds", 600) or 600), 1.0)
+        # CPU-backed Qwen 0.6B can exceed ten minutes for an 80-100 word
+        # production narration on the supported low-memory host. Keep the
+        # request bounded, but leave enough headroom above observed runtimes.
+        timeout = max(float(settings.get("timeout_seconds", 900) or 900), 1.0)
         logger.info("start local Voicebox TTS")
         response = requests.post(
             f"{base_url}/generate/stream",

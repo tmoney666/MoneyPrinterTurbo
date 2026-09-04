@@ -79,6 +79,12 @@ MoneyPrinterTurbo fit:
   filter; script word count must still be planned for the intended duration.
 - On memory-constrained machines, set `unload_after_generation = true`. MPT
   releases the local model after narration so FFmpeg can reuse that memory.
+- Keep `timeout_seconds = 900` for CPU-backed Qwen production narration. This
+  remains bounded while accommodating the observed 10-minute cold synthesis
+  time for an 80-100 word script on the current host.
+- Use `max_chunk_chars = 320` so an 80-100 word narration is synthesized in
+  sentence-safe segments rather than one long, superlinearly expensive Qwen
+  generation. Voicebox joins the segments with the configured short crossfade.
 - The adapter streams WAV audio directly from Voicebox and writes it into the
   task audio path. It never uploads the sample or narration to a cloud service.
 - A host MPT process defaults to `http://127.0.0.1:17493`. An MPT Docker

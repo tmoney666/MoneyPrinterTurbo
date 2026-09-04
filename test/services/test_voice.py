@@ -756,8 +756,6 @@ class TestVoiceService(unittest.TestCase):
                 "language": "en",
                 "engine": "qwen",
                 "model_size": "0.6B",
-                "timeout_seconds": 321,
-                "max_chunk_chars": 700,
                 "crossfade_ms": 40,
                 "normalize": True,
             },
@@ -776,9 +774,10 @@ class TestVoiceService(unittest.TestCase):
         self.assertEqual(captured["json"]["profile_id"], "profile-123")
         self.assertEqual(captured["json"]["engine"], "qwen")
         self.assertEqual(captured["json"]["model_size"], "0.6B")
+        self.assertEqual(captured["json"]["max_chunk_chars"], 320)
         self.assertNotIn("voice_rate", captured["json"])
         self.assertNotIn("voice_volume", captured["json"])
-        self.assertEqual(captured["timeout"], 321.0)
+        self.assertEqual(captured["timeout"], 900.0)
         self.assertEqual(generated_audio, b"RIFF-local-voice")
         self.assertIsNotNone(sub_maker)
         self.assertTrue(getattr(sub_maker, "subs", []))

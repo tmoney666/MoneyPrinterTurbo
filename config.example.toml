@@ -360,8 +360,8 @@ model_size = "0.6B"
 # Low-memory machines can release the model after narration so FFmpeg can use
 # that memory for video assembly. The next narration will reload the model.
 unload_after_generation = true
-timeout_seconds = 600
-max_chunk_chars = 800
+timeout_seconds = 900
+max_chunk_chars = 320
 crossfade_ms = 50
 normalize = true
 

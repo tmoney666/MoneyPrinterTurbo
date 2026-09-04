@@ -1,7 +1,7 @@
 schema_version: 1.0.0
 campaign_id: heritage-banner-facebook
 display_name: Heritage Banner
-description: Done-for-you short-form social storytelling for heritage nonprofits seeking to involve younger and newer people.
+description: Source-backed Illinois microstories that demonstrate done-for-you short-form storytelling for heritage nonprofits.
 enabled: true
 timezone: America/Chicago
 enabled_platforms: [facebook]
@@ -14,14 +14,14 @@ posting_cadence:
   local_time: "09:00"
   days_of_week: [0, 1, 2, 3, 4, 5, 6]
 target_audience:
-  description: Active members and volunteers who champion historical societies, local museums, preservation groups, genealogical organizations, and similar heritage nonprofits.
+  description: Illinois local-history viewers first, with heritage nonprofit members as qualified service prospects.
   problems:
     - Membership responsibility and institutional knowledge can become concentrated among a small group.
     - Insider language and vague invitations can hide meaningful ways for younger and newer people to contribute.
     - Digital visibility may not show the people, work, and participation paths behind the mission.
   interests: [heritage nonprofits, member engagement, volunteer participation, nonprofit storytelling, intergenerational collaboration]
   motivations: [share responsibility, involve younger and newer people, make mission work visible, create meaningful entry points]
-brand_positioning: Heritage Banner creates done-for-you short-form social stories designed to help heritage nonprofits reach and involve younger and newer people.
+brand_positioning: Heritage Banner turns reusable archival sources into evidence-bound short social stories for heritage nonprofits.
 brand_voice: [opportunity-forward, candid, practical, intergenerational, respectful, hopeful]
 tone_constraints:
   - Avoid sensationalism
@@ -36,7 +36,7 @@ content_pillars:
     themes:
       - {id: continuity-signals, name: Continuity signals, audience_goal: Turn membership patterns into practical action.}
       - {id: shared-knowledge, name: Shared knowledge, audience_goal: Make institutional knowledge easier to share.}
-    allowed_story_formats: [practical-action, participation-reframe, organization-story]
+    allowed_story_formats: [look-closer, on-the-map, what-happened-here, archive-detective]
     preferred_hooks: [recognition, contrast]
     preferred_ctas: [Choose one responsibility your organization can begin sharing.]
     visual_treatments: [members planning together, shared project documentation]
@@ -46,7 +46,7 @@ content_pillars:
     themes:
       - {id: present-relevance, name: Present relevance, audience_goal: Connect heritage work to questions people recognize now.}
       - {id: human-mission-work, name: Human mission work, audience_goal: Show members doing the work behind the mission.}
-    allowed_story_formats: [organization-story, behind-the-scenes, practical-action]
+    allowed_story_formats: [look-closer, on-the-map, what-happened-here, archive-detective]
     preferred_hooks: [relevance, human-action]
     preferred_ctas: [Choose one member action to carry your next story.]
     visual_treatments: [museum volunteers at work, exhibit and program preparation]
@@ -56,7 +56,7 @@ content_pillars:
     themes:
       - {id: project-sized-roles, name: Project-sized roles, audience_goal: Offer bounded work with a visible finish line.}
       - {id: co-created-participation, name: Co-created participation, audience_goal: Let newcomers shape real work.}
-    allowed_story_formats: [practical-action, participation-reframe, organization-story]
+    allowed_story_formats: [look-closer, on-the-map, what-happened-here, archive-detective]
     preferred_hooks: [specific-invitation, contribution]
     preferred_ctas: [Name one project a younger or newer member could help shape.]
     visual_treatments: [new volunteer joining a project, shared storyboarding]
@@ -66,7 +66,7 @@ content_pillars:
     themes:
       - {id: mutual-learning, name: Mutual learning, audience_goal: Combine complementary experience and skills.}
       - {id: shared-ownership, name: Shared ownership, audience_goal: Involve newer members in real decisions.}
-    allowed_story_formats: [participation-reframe, practical-action, organization-story]
+    allowed_story_formats: [look-closer, on-the-map, what-happened-here, archive-detective]
     preferred_hooks: [shared-strength, ownership]
     preferred_ctas: [Pair two members around one project where each can teach.]
     visual_treatments: [mixed-experience project teams, collaborative editing]
@@ -76,30 +76,30 @@ content_pillars:
     themes:
       - {id: visible-participation, name: Visible participation, audience_goal: Show how someone can contribute.}
       - {id: useful-signals, name: Useful signals, audience_goal: Learn from inquiries and participation questions.}
-    allowed_story_formats: [organization-story, behind-the-scenes, practical-action]
+    allowed_story_formats: [look-closer, on-the-map, what-happened-here, archive-detective]
     preferred_hooks: [digital-introduction, visible-next-step]
     preferred_ctas: [Show one real way a younger or newer person can contribute.]
     visual_treatments: [vertical video production, nonprofit social planning]
 themes: [membership continuity, relevant mission stories, project-sized roles, co-created content, two-way mentoring, shared ownership, visible participation, digital introductions, volunteer intent, nonprofit storytelling]
 story_formats:
-  - id: practical-action
-    name: Practical organization action
+  - id: look-closer
+    name: Look closer
     beat_structure: [hook, context, discovery, resolution, cta]
-    hook_patterns: ["One clear action can change how {topic} works inside an organization."]
-  - id: participation-reframe
-    name: Participation reframe
-    beat_structure: [hook, setup, contrast, resolution, cta]
-    hook_patterns: ["What changes when {topic} becomes shared work?"]
-  - id: organization-story
-    name: Organization story
-    beat_structure: [hook, context, example, resolution, cta]
-    hook_patterns: ["One human action can make {topic} easier to enter."]
-  - id: behind-the-scenes
-    name: Behind the scenes
-    beat_structure: [hook, setup, discovery, example, cta]
-    hook_patterns: ["The work behind {topic} can show where people belong."]
-allowed_formats: [practical-action, participation-reframe, organization-story, behind-the-scenes]
-preferred_formats: [practical-action, organization-story, behind-the-scenes]
+    hook_patterns: ["Look closer at this Illinois detail."]
+  - id: on-the-map
+    name: On the map
+    beat_structure: [hook, place, evidence, reveal, cta]
+    hook_patterns: ["Put this Illinois place on the map."]
+  - id: what-happened-here
+    name: What happened here
+    beat_structure: [hook, place, clue, reveal, cta]
+    hook_patterns: ["What happened at this Illinois place?"]
+  - id: archive-detective
+    name: Archive detective
+    beat_structure: [hook, clue, clue, reveal, cta]
+    hook_patterns: ["Two archive clues reveal one Illinois story."]
+allowed_formats: [look-closer, on-the-map, what-happened-here, archive-detective]
+preferred_formats: [look-closer, on-the-map, what-happened-here, archive-detective]
 disallowed_formats: []
 hook_styles: [recognition, contrast, relevance, human-action, specific-invitation, contribution, shared-strength, ownership, digital-introduction, visible-next-step]
 calls_to_action:
@@ -115,7 +115,7 @@ seasonal_rules:
   - id: year-end-participation
     start_month_day: "11-15"
     end_month_day: "12-31"
-    eligible_seed_ids: [hb-org-020, hb-org-023, hb-org-025, hb-org-030]
+    eligible_seed_ids: [story-14, story-15, blueprint-04, offer-04]
     weight_multiplier: 1.8
 content_exclusions:
   - invented genealogy
@@ -132,46 +132,46 @@ safety_constraints:
   - Family stories recipes and artifacts may appear only as nonprofit programming or member-engagement examples.
   - Do not promise that digital content alone produces recruitment or retention.
 seed_content:
-  - {id: hb-org-001, topic: giving a new member a real project to shape, pillar_id: meaningful-entry-points, theme_id: project-sized-roles, metadata: {rotation_order: 1, cta_mode: practical}}
-  - {id: hb-org-002, topic: treating membership patterns as a useful signal, pillar_id: membership-continuity, theme_id: continuity-signals, metadata: {rotation_order: 2, cta_mode: practical}}
-  - {id: hb-org-003, topic: showing why history work matters now, pillar_id: relevant-organizational-stories, theme_id: present-relevance, metadata: {rotation_order: 3, cta_mode: practical}}
-  - {id: hb-org-004, topic: making mentoring work in both directions, pillar_id: intergenerational-collaboration, theme_id: mutual-learning, metadata: {rotation_order: 4, cta_mode: practical}}
-  - {id: hb-org-005, topic: using a social feed as an introduction, pillar_id: digital-front-door, theme_id: visible-participation, metadata: {rotation_order: 5, cta_mode: brand}}
-  - {id: hb-org-006, topic: designing a project-sized volunteer role, pillar_id: meaningful-entry-points, theme_id: project-sized-roles, metadata: {rotation_order: 6, cta_mode: practical}}
-  - {id: hb-org-007, topic: translating insider mission language, pillar_id: membership-continuity, theme_id: continuity-signals, metadata: {rotation_order: 7, cta_mode: practical}}
-  - {id: hb-org-008, topic: connecting an artifact to current relevance, pillar_id: relevant-organizational-stories, theme_id: present-relevance, metadata: {rotation_order: 8, cta_mode: practical}}
-  - {id: hb-org-009, topic: combining institutional knowledge with digital skills, pillar_id: intergenerational-collaboration, theme_id: mutual-learning, metadata: {rotation_order: 9, cta_mode: brand}}
-  - {id: hb-org-010, topic: showing the people and work behind the mission, pillar_id: digital-front-door, theme_id: visible-participation, metadata: {rotation_order: 10, cta_mode: practical}}
-  - {id: hb-org-011, topic: asking newcomers what skills they want to contribute, pillar_id: meaningful-entry-points, theme_id: co-created-participation, metadata: {rotation_order: 11, cta_mode: practical}}
-  - {id: hb-org-012, topic: sharing institutional knowledge held by one person, pillar_id: membership-continuity, theme_id: shared-knowledge, metadata: {rotation_order: 12, cta_mode: practical}}
-  - {id: hb-org-013, topic: showing the mission through human work, pillar_id: relevant-organizational-stories, theme_id: human-mission-work, metadata: {rotation_order: 13, cta_mode: brand}}
-  - {id: hb-org-014, topic: sharing ownership before passing the torch, pillar_id: intergenerational-collaboration, theme_id: shared-ownership, metadata: {rotation_order: 14, cta_mode: practical}}
-  - {id: hb-org-015, topic: explaining how someone can participate, pillar_id: digital-front-door, theme_id: visible-participation, metadata: {rotation_order: 15, cta_mode: practical}}
-  - {id: hb-org-016, topic: letting newcomers help shape story formats, pillar_id: meaningful-entry-points, theme_id: co-created-participation, metadata: {rotation_order: 16, cta_mode: practical}}
-  - {id: hb-org-017, topic: making succession a respectful shared process, pillar_id: membership-continuity, theme_id: shared-knowledge, metadata: {rotation_order: 17, cta_mode: brand}}
-  - {id: hb-org-018, topic: using behind-the-scenes work as an entry point, pillar_id: relevant-organizational-stories, theme_id: human-mission-work, metadata: {rotation_order: 18, cta_mode: practical}}
-  - {id: hb-org-019, topic: recording and co-editing member knowledge, pillar_id: intergenerational-collaboration, theme_id: mutual-learning, metadata: {rotation_order: 19, cta_mode: practical}}
-  - {id: hb-org-020, topic: publishing consistent short-form stories, pillar_id: digital-front-door, theme_id: visible-participation, metadata: {rotation_order: 20, cta_mode: practical}}
-  - {id: hb-org-021, topic: co-creating content with newer participants, pillar_id: meaningful-entry-points, theme_id: co-created-participation, metadata: {rotation_order: 21, cta_mode: brand}}
-  - {id: hb-org-022, topic: understanding why current members stay involved, pillar_id: membership-continuity, theme_id: continuity-signals, metadata: {rotation_order: 22, cta_mode: practical}}
-  - {id: hb-org-023, topic: turning events into participation entry points, pillar_id: relevant-organizational-stories, theme_id: human-mission-work, metadata: {rotation_order: 23, cta_mode: practical}}
-  - {id: hb-org-024, topic: welcoming multiple perspectives into stories, pillar_id: intergenerational-collaboration, theme_id: shared-ownership, metadata: {rotation_order: 24, cta_mode: practical}}
-  - {id: hb-org-025, topic: reusing stories in onboarding and events, pillar_id: digital-front-door, theme_id: useful-signals, metadata: {rotation_order: 25, cta_mode: practical}}
-  - {id: hb-org-026, topic: helping an attendee become a participant, pillar_id: meaningful-entry-points, theme_id: project-sized-roles, metadata: {rotation_order: 26, cta_mode: practical}}
-  - {id: hb-org-027, topic: preserving the organization as well as collections, pillar_id: membership-continuity, theme_id: shared-knowledge, metadata: {rotation_order: 27, cta_mode: practical}}
-  - {id: hb-org-028, topic: connecting a local place to current participation, pillar_id: relevant-organizational-stories, theme_id: present-relevance, metadata: {rotation_order: 28, cta_mode: practical}}
-  - {id: hb-org-029, topic: building a cross-generational project team, pillar_id: intergenerational-collaboration, theme_id: shared-ownership, metadata: {rotation_order: 29, cta_mode: practical}}
-  - {id: hb-org-030, topic: measuring participation questions instead of views alone, pillar_id: digital-front-door, theme_id: useful-signals, metadata: {rotation_order: 30, cta_mode: brand}}
-  - {id: hb-org-031, topic: giving a newcomer a clear first-meeting role, pillar_id: meaningful-entry-points, theme_id: project-sized-roles, metadata: {rotation_order: 31, cta_mode: practical}}
-  - {id: hb-org-032, topic: telling one compelling story instead of a chronology, pillar_id: relevant-organizational-stories, theme_id: human-mission-work, metadata: {rotation_order: 32, cta_mode: practical}}
+  - {id: story-01, topic: Illinois railroad station architecture, pillar_id: relevant-organizational-stories, theme_id: present-relevance, metadata: {rotation_order: 1, cta_mode: practical, format_id: look-closer}}
+  - {id: story-02, topic: Illinois small town main street, pillar_id: relevant-organizational-stories, theme_id: present-relevance, metadata: {rotation_order: 2, cta_mode: practical, format_id: on-the-map}}
+  - {id: story-03, topic: Illinois courthouse public square, pillar_id: relevant-organizational-stories, theme_id: present-relevance, metadata: {rotation_order: 3, cta_mode: practical, format_id: what-happened-here}}
+  - {id: story-04, topic: Illinois river commerce, pillar_id: relevant-organizational-stories, theme_id: present-relevance, metadata: {rotation_order: 4, cta_mode: practical, format_id: archive-detective}}
+  - {id: story-05, topic: Illinois county fair historic photograph, pillar_id: relevant-organizational-stories, theme_id: present-relevance, metadata: {rotation_order: 5, cta_mode: practical, format_id: look-closer}}
+  - {id: blueprint-01, topic: turning one sourced image into a concise story, pillar_id: digital-front-door, theme_id: useful-signals, metadata: {rotation_order: 6, cta_mode: practical}}
+  - {id: offer-01, topic: collections already containing strong social stories, pillar_id: digital-front-door, theme_id: visible-participation, metadata: {rotation_order: 7, cta_mode: brand}}
+  - {id: story-06, topic: Illinois canal town, pillar_id: relevant-organizational-stories, theme_id: present-relevance, metadata: {rotation_order: 8, cta_mode: practical, format_id: on-the-map}}
+  - {id: story-07, topic: Illinois schoolhouse historic, pillar_id: relevant-organizational-stories, theme_id: present-relevance, metadata: {rotation_order: 9, cta_mode: practical, format_id: what-happened-here}}
+  - {id: story-08, topic: Illinois agricultural machinery, pillar_id: relevant-organizational-stories, theme_id: present-relevance, metadata: {rotation_order: 10, cta_mode: practical, format_id: archive-detective}}
+  - {id: story-09, topic: Illinois storefront signs historic, pillar_id: relevant-organizational-stories, theme_id: present-relevance, metadata: {rotation_order: 11, cta_mode: practical, format_id: look-closer}}
+  - {id: story-10, topic: Illinois Lincoln Highway town, pillar_id: relevant-organizational-stories, theme_id: present-relevance, metadata: {rotation_order: 12, cta_mode: practical, format_id: on-the-map}}
+  - {id: blueprint-02, topic: question clue reveal instead of chronology, pillar_id: digital-front-door, theme_id: useful-signals, metadata: {rotation_order: 13, cta_mode: practical}}
+  - {id: offer-02, topic: measuring attention before selling a service, pillar_id: digital-front-door, theme_id: useful-signals, metadata: {rotation_order: 14, cta_mode: brand}}
+  - {id: story-11, topic: Illinois factory historic photograph, pillar_id: relevant-organizational-stories, theme_id: present-relevance, metadata: {rotation_order: 15, cta_mode: practical, format_id: what-happened-here}}
+  - {id: story-12, topic: Illinois streetcar, pillar_id: relevant-organizational-stories, theme_id: present-relevance, metadata: {rotation_order: 16, cta_mode: practical, format_id: archive-detective}}
+  - {id: story-13, topic: Illinois farmstead historic photograph, pillar_id: relevant-organizational-stories, theme_id: present-relevance, metadata: {rotation_order: 17, cta_mode: practical, format_id: look-closer}}
+  - {id: story-14, topic: Illinois river town historic, pillar_id: relevant-organizational-stories, theme_id: present-relevance, metadata: {rotation_order: 18, cta_mode: practical, format_id: on-the-map}}
+  - {id: story-15, topic: Illinois theater historic, pillar_id: relevant-organizational-stories, theme_id: present-relevance, metadata: {rotation_order: 19, cta_mode: practical, format_id: what-happened-here}}
+  - {id: blueprint-03, topic: archival rights as part of the creative, pillar_id: digital-front-door, theme_id: useful-signals, metadata: {rotation_order: 20, cta_mode: practical}}
+  - {id: offer-03, topic: done-for-you work with an evidence trail, pillar_id: digital-front-door, theme_id: visible-participation, metadata: {rotation_order: 21, cta_mode: brand}}
+  - {id: story-16, topic: Illinois public library historic, pillar_id: relevant-organizational-stories, theme_id: present-relevance, metadata: {rotation_order: 22, cta_mode: practical, format_id: archive-detective}}
+  - {id: story-17, topic: Illinois bridge historic photograph, pillar_id: relevant-organizational-stories, theme_id: present-relevance, metadata: {rotation_order: 23, cta_mode: practical, format_id: look-closer}}
+  - {id: story-18, topic: Illinois mining town historic, pillar_id: relevant-organizational-stories, theme_id: present-relevance, metadata: {rotation_order: 24, cta_mode: practical, format_id: on-the-map}}
+  - {id: story-19, topic: Illinois depot historic photograph, pillar_id: relevant-organizational-stories, theme_id: present-relevance, metadata: {rotation_order: 25, cta_mode: practical, format_id: what-happened-here}}
+  - {id: story-20, topic: Illinois fairground historic, pillar_id: relevant-organizational-stories, theme_id: present-relevance, metadata: {rotation_order: 26, cta_mode: practical, format_id: archive-detective}}
+  - {id: blueprint-04, topic: a fact-sized promise in the first two seconds, pillar_id: digital-front-door, theme_id: useful-signals, metadata: {rotation_order: 27, cta_mode: practical}}
+  - {id: offer-04, topic: building proof in public one Illinois story at a time, pillar_id: digital-front-door, theme_id: visible-participation, metadata: {rotation_order: 28, cta_mode: brand}}
+  - {id: story-21, topic: Illinois town square historic, pillar_id: relevant-organizational-stories, theme_id: present-relevance, metadata: {rotation_order: 29, cta_mode: practical, format_id: look-closer}}
+  - {id: story-22, topic: Illinois transportation historic, pillar_id: relevant-organizational-stories, theme_id: present-relevance, metadata: {rotation_order: 30, cta_mode: practical, format_id: on-the-map}}
+  - {id: story-23, topic: Illinois civic building historic, pillar_id: relevant-organizational-stories, theme_id: present-relevance, metadata: {rotation_order: 31, cta_mode: practical, format_id: archive-detective}}
+  - {id: blueprint-05, topic: repeatable format evidence, pillar_id: digital-front-door, theme_id: useful-signals, metadata: {rotation_order: 32, cta_mode: practical}}
 stop_phrases: [dying organization, guaranteed growth, preserve your family story]
 metadata:
   brand_id: heritage-banner
-  creative_revision: 2026-08-29-nonprofit-membership-v1
-  campaign_objective: Build qualified interest by showing how modern storytelling can make a heritage nonprofit's work relevant visible and participatory.
-  value_proposition: Heritage Banner creates done-for-you short-form social stories for heritage nonprofits.
-  desired_emotional_response: practical hope followed by a specific desire to involve younger and newer people
-  hashtags: ["#TheHeritageBanner", "#HeritageNonprofits"]
+  creative_revision: 2026-08-30-illinois-discovery-v1
+  campaign_objective: Demonstrate that source-backed Illinois microstories can earn attention and qualified service interest.
+  value_proposition: Heritage Banner turns reusable archival sources into evidence-bound short social stories for heritage nonprofits.
+  desired_emotional_response: curiosity followed by a specific desire to see another Illinois discovery
+  hashtags: ["#TheHeritageBanner", "#IllinoisHistory"]
   production_status: generation-only
   legacy_source: campaigns/heritage-banner/marketing-plan.json
   mpt_defaults: {video_concat_mode: sequential, video_transition_mode: null, video_clip_duration: 5, match_materials_to_script: true, video_count: 1}

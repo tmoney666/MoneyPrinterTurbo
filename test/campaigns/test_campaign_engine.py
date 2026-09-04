@@ -39,11 +39,11 @@ class CampaignConfigurationTests(unittest.TestCase):
         self.assertEqual((campaign.min_duration_seconds, campaign.max_duration_seconds), (20, 60))
         self.assertEqual(campaign.duplicate_cooldown_days, 30)
         self.assertEqual(len(campaign.seed_content), 32)
-        self.assertEqual(campaign.metadata["creative_revision"], "2026-08-29-nonprofit-membership-v1")
+        self.assertEqual(campaign.metadata["creative_revision"], "2026-08-30-illinois-discovery-v1")
         self.assertEqual({seed.metadata["rotation_order"] for seed in campaign.seed_content}, set(range(1, 33)))
-        self.assertEqual(sum(seed.metadata["cta_mode"] == "practical" for seed in campaign.seed_content), 26)
-        self.assertEqual(sum(seed.metadata["cta_mode"] == "brand" for seed in campaign.seed_content), 6)
-        self.assertEqual(campaign.seed_content[0].pillar_id, "meaningful-entry-points")
+        self.assertEqual(sum(seed.metadata["cta_mode"] == "practical" for seed in campaign.seed_content), 28)
+        self.assertEqual(sum(seed.metadata["cta_mode"] == "brand" for seed in campaign.seed_content), 4)
+        self.assertEqual(campaign.seed_content[0].pillar_id, "relevant-organizational-stories")
 
     def test_registry_lists_and_validates_campaign(self):
         registry = CampaignRegistry(ROOT / "campaigns")
@@ -94,11 +94,11 @@ class CampaignPlannerTests(unittest.TestCase):
 
     def test_planner_rotates_pillars_themes_hooks_formats_and_ctas(self):
         plan = self.plan(days=20)
-        self.assertGreater(len({item.content_pillar for item in plan.items}), 4)
-        self.assertGreater(len({item.theme for item in plan.items}), 6)
+        self.assertGreater(len({item.content_pillar for item in plan.items}), 1)
+        self.assertGreater(len({item.theme for item in plan.items}), 1)
         self.assertGreater(len({item.hook_style for item in plan.items}), 2)
         self.assertGreater(len({item.story_format for item in plan.items}), 3)
-        self.assertGreater(len({item.cta_style for item in plan.items}), 2)
+        self.assertGreater(len({item.cta_style for item in plan.items}), 1)
         self.assertTrue(all(a.theme != b.theme for a, b in zip(plan.items, plan.items[1:])))
         self.assertTrue(all(a.story_format != b.story_format for a, b in zip(plan.items, plan.items[1:])))
 
@@ -120,7 +120,7 @@ class CampaignPlannerTests(unittest.TestCase):
 
     def test_seasonal_seed_is_preferred_when_eligible(self):
         plan = self.plan(start=date(2026, 12, 1), days=1)
-        self.assertIn(plan.items[0].seed_id, {"hb-org-020", "hb-org-023", "hb-org-025", "hb-org-030"})
+        self.assertIn(plan.items[0].seed_id, {"story-14", "story-15", "blueprint-04", "offer-04"})
         self.assertIn("seasonal multiplier=1.8", plan.decisions[0].reasons)
 
     def test_exhausted_seed_pool_is_explained_without_duplication(self):

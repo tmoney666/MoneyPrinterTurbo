@@ -350,6 +350,10 @@ class StoryEngine:
             "example": f"For example, {brief.topic} might open a conversation; the meaning comes from the people who remember it.",
             "reflection": f"What does {brief.topic} bring to mind for you, and whose perspective would add context?",
             "resolution": f"{concept.core_takeaway}. Small acts of attention can keep meaning connected to its source.",
+            "place": f"Locate {brief.topic} precisely, then use the reviewed catalog record to explain why this Illinois place belongs in the story.",
+            "evidence": "Show the documented visual detail and connect it only to the facts present in the saved source record.",
+            "clue": "Add one more catalog-supported clue that moves the viewer toward the answer without inventing missing context.",
+            "reveal": f"Bring the clues together around {brief.topic}, state the supported discovery clearly, and keep the source credit visible.",
             "cta": brief.cta_objective,
         }
         if "heritage nonprofit" in brief.target_audience.casefold():
@@ -362,6 +366,17 @@ class StoryEngine:
                 "example": f"Show a member working on {brief.topic}, explain why it matters, and identify one useful entry point.",
                 "reflection": "Ask which skills and questions a newer participant could bring alongside the organization's existing knowledge.",
                 "resolution": f"{concept.core_takeaway}. Clear short stories can make the people, work, and participation path easier to understand.",
+            })
+        elif "local-history" in brief.target_audience.casefold() or "illinois" in brief.target_audience.casefold():
+            segment_text.update({
+                "context": f"The subject is {brief.topic}, but the strongest opening is one visible detail supported by a reviewed catalog record.",
+                "setup": "A second source can add place or object context while keeping the story inside what the surviving evidence actually says.",
+                "tension": "Without that evidence boundary, a dramatic claim may earn attention by turning uncertainty into a fact the archive never supplied.",
+                "discovery": "Put the documented clues in sequence, keep the item-level credit visible, and let the final clue answer the opening question.",
+                "contrast": "The result is not a broad history lesson; it is one specific Illinois discovery that rewards a viewer for staying.",
+                "example": f"Use {brief.topic} to move from a precise visual clue to a sourced reveal without substituting generic stock footage.",
+                "reflection": "Invite the viewer to name another Illinois place or detail that could support the same careful question-and-reveal structure.",
+                "resolution": f"{concept.core_takeaway}. A repeatable sourced format can demonstrate the creative service before an organization buys it.",
             })
         segments: list[NarrationSegment] = []
         for beat in beats:
