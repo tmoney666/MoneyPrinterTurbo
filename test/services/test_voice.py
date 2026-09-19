@@ -777,7 +777,7 @@ class TestVoiceService(unittest.TestCase):
         self.assertEqual(captured["json"]["max_chunk_chars"], 320)
         self.assertNotIn("voice_rate", captured["json"])
         self.assertNotIn("voice_volume", captured["json"])
-        self.assertEqual(captured["timeout"], 900.0)
+        self.assertEqual(captured["timeout"], 1800.0)
         self.assertEqual(generated_audio, b"RIFF-local-voice")
         self.assertIsNotNone(sub_maker)
         self.assertTrue(getattr(sub_maker, "subs", []))

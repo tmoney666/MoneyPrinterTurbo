@@ -1563,10 +1563,10 @@ def voicebox_tts(
     native_voice_file = f"{voice_file}.voicebox-native.wav"
     paced_voice_file = f"{voice_file}.voicebox-paced.wav"
     try:
-        # CPU-backed Qwen 0.6B can exceed ten minutes for an 80-100 word
+        # CPU-backed Qwen 0.6B can exceed fifteen minutes for an 80-100 word
         # production narration on the supported low-memory host. Keep the
         # request bounded, but leave enough headroom above observed runtimes.
-        timeout = max(float(settings.get("timeout_seconds", 900) or 900), 1.0)
+        timeout = max(float(settings.get("timeout_seconds", 1800) or 1800), 1.0)
         logger.info("start local Voicebox TTS")
         response = requests.post(
             f"{base_url}/generate/stream",
