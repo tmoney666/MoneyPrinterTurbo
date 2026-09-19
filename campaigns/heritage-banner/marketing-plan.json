@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "2.0.0",
+  "deprecated": true,
+  "creativeRevision": "2026-08-30-illinois-discovery-v1",
+  "campaignId": "heritage-banner-facebook",
+  "brandId": "heritage-banner",
+  "timezone": "America/Chicago",
+  "platformTargets": ["facebook"],
+  "defaultAspectRatio": "9:16",
+  "minimumDurationSeconds": 20,
+  "maximumDurationSeconds": 60,
+  "duplicateCooldownDays": 30,
+  "migrationTarget": "campaigns/heritage-banner/campaign.yaml",
+  "targetAudience": "Illinois local-history viewers first, with heritage nonprofit members as qualified service prospects.",
+  "valueProposition": "Source-backed Illinois microstories demonstrating done-for-you storytelling for heritage nonprofits.",
+  "contentSeeds": [
+    {"id":"story-01","topic":"Illinois railroad station architecture"},{"id":"story-02","topic":"Illinois small town main street"},{"id":"story-03","topic":"Illinois courthouse public square"},{"id":"story-04","topic":"Illinois river commerce"},{"id":"story-05","topic":"Illinois county fair historic photograph"},{"id":"blueprint-01","topic":"turning one sourced image into a concise story"},{"id":"offer-01","topic":"collections already containing strong social stories"},{"id":"story-06","topic":"Illinois canal town"},{"id":"story-07","topic":"Illinois schoolhouse historic"},{"id":"story-08","topic":"Illinois agricultural machinery"},{"id":"story-09","topic":"Illinois storefront signs historic"},{"id":"story-10","topic":"Illinois Lincoln Highway town"},{"id":"blueprint-02","topic":"question clue reveal instead of chronology"},{"id":"offer-02","topic":"measuring attention before selling a service"},{"id":"story-11","topic":"Illinois factory historic photograph"},{"id":"story-12","topic":"Illinois streetcar"},{"id":"story-13","topic":"Illinois farmstead historic photograph"},{"id":"story-14","topic":"Illinois river town historic"},{"id":"story-15","topic":"Illinois theater historic"},{"id":"blueprint-03","topic":"archival rights as part of the creative"},{"id":"offer-03","topic":"done-for-you work with an evidence trail"},{"id":"story-16","topic":"Illinois public library historic"},{"id":"story-17","topic":"Illinois bridge historic photograph"},{"id":"story-18","topic":"Illinois mining town historic"},{"id":"story-19","topic":"Illinois depot historic photograph"},{"id":"story-20","topic":"Illinois fairground historic"},{"id":"blueprint-04","topic":"a fact-sized promise in the first two seconds"},{"id":"offer-04","topic":"building proof in public one Illinois story at a time"},{"id":"story-21","topic":"Illinois town square historic"},{"id":"story-22","topic":"Illinois transportation historic"},{"id":"story-23","topic":"Illinois civic building historic"},{"id":"blueprint-05","topic":"repeatable format evidence"}
+  ]
+}

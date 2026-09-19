@@ -537,7 +537,10 @@ def generate_subtitle(task_id, params, video_script, sub_maker, audio_file):
 
     if subtitle_provider == "edge":
         voice.create_subtitle(
-            text=video_script, sub_maker=sub_maker, subtitle_file=subtitle_path
+            text=video_script,
+            sub_maker=sub_maker,
+            subtitle_file=subtitle_path,
+            max_words=getattr(params, "subtitle_max_words", 0),
         )
         if not os.path.exists(subtitle_path):
             # Edge 字幕偶尔会因为时间轴与文案无法匹配而没有产出文件。这里不能
@@ -594,6 +597,7 @@ def get_video_materials(task_id, params, video_terms, audio_duration):
             audio_duration=audio_duration * params.video_count,
             max_clip_duration=params.video_clip_duration,
             match_script_order=params.match_materials_to_script,
+            quality_filter=getattr(params, "material_quality_filter", False),
         )
         if not downloaded_videos:
             _mark_task_failed(

@@ -513,6 +513,68 @@ class TestVideoService(unittest.TestCase):
 
         self.assertNotIn("h264_nvenc", vd._runtime_disabled_video_codecs)
 
+    def test_write_videofile_rewrites_invalid_output_once(self):
+        """MoviePy success is insufficient when FFmpeg leaves a corrupt MP4."""
+
+        class _FakeClip:
+            def __init__(self):
+                self.codecs = []
+
+            def write_videofile(self, output_file, codec, **kwargs):
+                self.codecs.append(codec)
+                Path(output_file).write_bytes(b"candidate video")
+
+        fake_clip = _FakeClip()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_file = os.path.join(temp_dir, "clip.mp4")
+            with patch.object(
+                vd,
+                "_validate_written_video",
+                side_effect=[RuntimeError("moov atom not found"), None],
+            ) as validate:
+                used_codec = vd._write_videofile_with_codec_fallback(
+                    fake_clip,
+                    output_file,
+                    codec="libx264",
+                    validate_output=True,
+                    logger=None,
+                    fps=30,
+                )
+
+            self.assertEqual(used_codec, "libx264")
+            self.assertEqual(fake_clip.codecs, ["libx264", "libx264"])
+            self.assertEqual(validate.call_count, 2)
+            self.assertTrue(os.path.isfile(output_file))
+
+    def test_write_videofile_removes_output_when_validation_retry_fails(self):
+        """A twice-invalid clip must not be available for later concatenation."""
+
+        class _FakeClip:
+            def write_videofile(self, output_file, codec, **kwargs):
+                Path(output_file).write_bytes(b"invalid video")
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_file = os.path.join(temp_dir, "clip.mp4")
+            with patch.object(
+                vd,
+                "_validate_written_video",
+                side_effect=RuntimeError("moov atom not found"),
+            ):
+                with self.assertRaisesRegex(
+                    RuntimeError,
+                    "remained invalid after one software-codec retry",
+                ):
+                    vd._write_videofile_with_codec_fallback(
+                        _FakeClip(),
+                        output_file,
+                        codec="libx264",
+                        validate_output=True,
+                        logger=None,
+                        fps=30,
+                    )
+
+            self.assertFalse(os.path.exists(output_file))
+
     def test_format_ffmpeg_concat_path_normalizes_windows_path(self):
         """
         concat demuxer 的文件列表对 Windows 反斜杠较敏感，写入 list 前统一
